@@ -1,0 +1,32 @@
+
+
+The approach I had in mind was to build an XS file full of Perl <-> C thunks 
+and then use the closure-over-dlfunc-pointer trick of P5NCI to avoid writing 
+(and paying the cost of) hundreds of otherwise-identical XS wrappers. This is 
+even one spot where a little AUTOLOAD magic would help memory usage even more.
+
+
+On Friday, July 01, 2011 at 07:26 pm, Kartik Thakore wrote:
+
+> What is the closure-over-dlfunc-pointer trick? Can I see an example of
+> this someplace?
+
+See load_func() and build_thunk() in:
+
+http://cpansearch.perl.org/src/CHROMATIC/P5NCI-0.31/lib/P5NCI.pm
+
+... and generate_function() in:
+
+http://cpansearch.perl.org/src/CHROMATIC/P5NCI-0.31/build_lib/P5NCI/GenerateXS.pm
+
+In short, P5NCI takes the name of a function in a shared library and its 
+signature. It uses dlfunc to get that function's pointer *and* the pointer to 
+an XS function which can handle that signature. Then it builds a closure which 
+calls the XS function, passing the shared library's function pointer as well 
+as @_. The XS function handles the conversion of the contents of @_, then 
+calls the shared library function, converts any return value, and returns.
+
+For an API like most of SDL or especially OpenGL, you pay a much, much smaller 
+cost.
+
+-- c
